@@ -54,6 +54,7 @@ public:
 
 	vector<Variable<T>*> &get_variables();
 	Node<T, int>* get_nary();
+	Factor<T>* set_nary(Node<T, int>* nary);
 
 	//Given some instantiation of the random variables (in the order that they were passed), get/set it's value
 	int get_value(vector<T> instantiation);
@@ -110,6 +111,13 @@ template<class T>
 inline Node<T, int>* Factor<T>::get_nary()
 {
 	return this->nary;
+}
+
+template<class T>
+Factor<T>* Factor<T>::set_nary(Node<T, int>* nary)
+{
+	this->nary = nary;
+	return this;
 }
 
 template <typename T>
@@ -173,7 +181,7 @@ void rrestrict(Node<K, int>* current_node, typename vector<Variable<K>*>::iterat
 	if (it == end) {
 		//Variable not found
 	}
-	else if (advance(it, 1), it != end && (*it)->get_name() == restricted_variable->get_name()) {	//Forward lookahead 1 level
+	else if (advance(it, 1), it != end && (*it)->get_name() == restricted_variable->get_name()) {	//Forward lookahead 1 level is necessary so that children don't update parent multiple times
 		//Variable found, restrict
 		for (map<K, Node<K, int>*>::iterator cit = current_node->get_neighbours().begin(); cit != current_node->get_neighbours().end(); ++cit) {
 			//Retrieve child and grandchild
@@ -203,7 +211,19 @@ void rrestrict(Node<K, int>* current_node, typename vector<Variable<K>*>::iterat
 template <typename T>
 Factor<T>& Factor<T>::restrict(Factor<T> &f, Variable<T>* variable, T value)
 {
-	rrestrict(f.get_nary(), f.get_variables().begin(), f.get_variables().end(), variable, value);
+	if (!f.get_variables().empty() && f.get_variables().at(0)->get_name() == variable->get_name()) {
+		//Handle case where root node is restricted variable and update nary accordingly
+		Node<T, int>* old_nary = f.get_nary();
+		Node<T, int>* new_nary = old_nary->get_neighbour(value);
+
+		f.set_nary(new_nary);
+		old_nary->remove_neighbour(value);
+		delete_tree(old_nary);
+	}
+	else {
+		rrestrict(f.get_nary(), f.get_variables().begin(), f.get_variables().end(), variable, value);
+	}
+	
 	for (vector<Variable<T>*>::iterator it = f.get_variables().begin(); it != f.get_variables().end(); ++it) {
 		if ((*it)->get_name() == variable->get_name()) {
 			f.get_variables().erase(it);
