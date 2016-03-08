@@ -34,9 +34,24 @@ int main () {
 	f.set_value(vector<bool>({ false, true, false, false }), 15);
 	f.set_value(vector<bool>({ false, false, false, false }), 16);
 
-	f = Factor<bool>::restrict(f, variables.at(0), false);	//Doesn't work when the root node is restricted...
+	//f = Factor<bool>::restrict(f, variables.at(0), false);
 
-	f.print_table();
+	Factor<bool>* f2 = Factor<bool>::sumout(f, variables.at(3));
+
+	//Print partial instantiation of variable
+	//PartialInstantiations<bool> partial_instantiations = get_instantiation(variables, vector<Variable<bool>*>({variables.at(1), variables.at(2)}));
+
+	//for (unsigned int i = 0; i < partial_instantiations.instantiations.size(); ++i) {
+	//	for (unsigned int j = 0; j < partial_instantiations.instantiations.at(i).size(); ++j) {
+	//		cout << partial_instantiations.instantiations.at(i).at(j) << " ";
+	//	}
+
+	//	cout << endl;
+	//}
+	
+	//Print the factor
+	f2->print_table();
+	delete f2;
 
 	for (unsigned int i = 0; i < variables.size(); ++i) {
 		delete variables.at(i);

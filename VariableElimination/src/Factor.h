@@ -16,7 +16,7 @@ class Variable {
 public:
 	Variable(string name, vector<T> domain);
 
-	vector<T> get_domain();
+	vector<T> &get_domain();
 	string get_name();
 private:
 	vector<T> domain;
@@ -29,7 +29,7 @@ Variable<T>::Variable(string name, vector<T> domain) : name(name), domain(domain
 }
 
 template <typename T>
-vector<T> Variable<T>::get_domain() {
+vector<T> &Variable<T>::get_domain() {
 	return this->domain;
 }
 
@@ -47,7 +47,7 @@ class Factor {
 public:
 	static Factor<T> multiply(Factor<T> f1, Factor<T> f2);
 	static Factor<T>& restrict(Factor<T> &f, Variable<T>* variable, T value);
-	static Factor<T>& sumout(Factor<T> &f, Variable<T>* variable);
+	static Factor<T>* sumout(Factor<T> &f, Variable<T>* variable);
 
 	Factor(vector<Variable<T>*> variables);
 	~Factor();
@@ -231,4 +231,126 @@ Factor<T>& Factor<T>::restrict(Factor<T> &f, Variable<T>* variable, T value)
 		}
 	}
 	return f;
+}
+
+template <class T>
+struct PartialInstantiations {
+	vector<vector<T>> instantiations;
+	vector<int> index_of_uninstantiated_variables;
+};
+
+template <class T>
+bool is_variable_in_variables(Variable<T>* variable, vector<Variable<T>*> variables) {
+	for (unsigned int i = 0; i < variables.size(); ++i) {
+		if (variables.at(i)->get_name() == variable->get_name()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//Returns a vector of paritally instantiated variables where uninstantiate is the variables to leave out of instantiation
+template<typename T>
+PartialInstantiations<T> get_instantiation(vector<Variable<T>*> variables, vector<Variable<T>*> uninstantiate) {
+	PartialInstantiations<T> partial_instantiations;
+
+	if (!variables.empty()) {
+		//Initialize partial_instantiations
+		if (is_variable_in_variables(variables.at(0), uninstantiate)) {
+			partial_instantiations.instantiations.push_back(vector<T>());
+			partial_instantiations.instantiations.at(0).resize(1);
+
+			partial_instantiations.index_of_uninstantiated_variables.push_back(0);
+		}
+		else {
+			for (unsigned int i = 0; i < variables.at(0)->get_domain().size(); ++i) {
+				vector<T> instantiation;
+				instantiation.push_back(variables.at(0)->get_domain().at(i));
+
+				partial_instantiations.instantiations.push_back(instantiation);
+			}
+		}
+		
+		//Append to partial_instantiations
+		for (unsigned int i = 1; i < variables.size(); ++i) {
+			Variable<T>* variable = variables.at(i);
+
+			//Keep a copy of the instantiations of the previous variable
+			vector<vector<T>> old_instantiations = vector<vector<T>>(partial_instantiations.instantiations);
+
+			//Clear the previous variable's partial_instantiations so we may add the new instantiations
+			partial_instantiations.instantiations.clear();
+
+			if (is_variable_in_variables(variable, uninstantiate)) {
+				//Add to previous instantiations a placeholder value
+				vector<vector<T>> new_instantiations = vector<vector<T>>(old_instantiations);
+
+				for (unsigned int k = 0; k < new_instantiations.size(); ++k) {
+					new_instantiations.at(k).resize(new_instantiations.at(k).size() + 1);
+				}
+
+				//Add the new instantiations to the list of instantiations
+				partial_instantiations.instantiations.insert(partial_instantiations.instantiations.end(), new_instantiations.begin(), new_instantiations.end());
+
+				partial_instantiations.index_of_uninstantiated_variables.push_back(i);
+			}
+			else {
+				for (unsigned int j = 0; j < variable->get_domain().size(); ++j) {
+					//Copy previous variable's instantiations
+					vector<vector<T>> new_instantiations = vector<vector<T>>(old_instantiations);
+
+					//Append the current variable's instantiation to the previous variable's instantiations
+					for (unsigned int k = 0; k < new_instantiations.size(); ++k) {
+						new_instantiations.at(k).push_back(variable->get_domain().at(j));
+					}
+
+					//Add the new instantiations to the list of instantiations
+					partial_instantiations.instantiations.insert(partial_instantiations.instantiations.end(), new_instantiations.begin(), new_instantiations.end());
+				}
+			}
+		}
+	}
+	
+	return partial_instantiations;
+}
+
+template<typename T>
+Factor<T>* Factor<T>::sumout(Factor<T>& f, Variable<T>* variable)
+{
+	vector<Variable<T>*> new_variables = vector<Variable<T>*>(f.get_variables());	//Copy variables
+
+	//Remove variable to be summed out
+	for (vector<Variable<T>*>::iterator it = new_variables.begin(); it != new_variables.end(); ++it) {
+		if ((*it)->get_name() == variable->get_name()) {
+			new_variables.erase(it);
+			break;
+		}
+	}
+
+	//Create new factor
+	Factor<T>* new_factor = new Factor<T>(new_variables);
+
+	//Get all instantiations of the factor to sumout
+	vector<Variable<T>*> uninstantiate;
+	uninstantiate.push_back(variable);
+	PartialInstantiations<T> partial_instantiations = get_instantiation(f.get_variables(), uninstantiate);
+
+	for (vector<vector<T>>::iterator it = partial_instantiations.instantiations.begin(); it != partial_instantiations.instantiations.end(); ++it) {
+		//Get the instantiation without the uninstantiated variable
+		vector<T> instantiation = vector<T>(*it);
+		instantiation.erase(next(instantiation.begin(), partial_instantiations.index_of_uninstantiated_variables.at(0)));
+
+		int sum = 0;
+
+		for (vector<T>::iterator dit = variable->get_domain().begin(); dit != variable->get_domain().end(); ++dit) {
+			vector<T> filled_instantiation = vector<T>(*it);
+			filled_instantiation.at(partial_instantiations.index_of_uninstantiated_variables.at(0)) = *dit;
+			sum += f.get_value(filled_instantiation);
+		}
+
+		new_factor->set_value(instantiation, sum);
+	}
+
+	return new_factor;
 }
