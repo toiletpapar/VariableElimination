@@ -45,7 +45,7 @@ string Variable<T>::get_name() {
 template <class T>
 class Factor {
 public:
-	static Factor<T> multiply(Factor<T> f1, Factor<T> f2);
+	static Factor<T>* multiply(Factor<T> f1, Factor<T> f2);
 	static Factor<T>& restrict(Factor<T> &f, Variable<T>* variable, T value);
 	static Factor<T>* sumout(Factor<T> &f, Variable<T>* variable);
 
@@ -250,6 +250,11 @@ bool is_variable_in_variables(Variable<T>* variable, vector<Variable<T>*> variab
 	return false;
 }
 
+template <typename T>
+PartialInstantiations<T> get_instantiation(vector<Variable<T>*> variables) {
+	return get_instantiation(variables, vector<Variable<T>*>());
+}
+
 //Returns a vector of paritally instantiated variables where uninstantiate is the variables to leave out of instantiation
 template<typename T>
 PartialInstantiations<T> get_instantiation(vector<Variable<T>*> variables, vector<Variable<T>*> uninstantiate) {
@@ -353,4 +358,59 @@ Factor<T>* Factor<T>::sumout(Factor<T>& f, Variable<T>* variable)
 	}
 
 	return new_factor;
+}
+
+template<class T>
+Factor<T>* Factor<T>::multiply(Factor<T> f1, Factor<T> f2)
+{
+	vector<Variable<T>*> common_variables;
+
+	//Create variable list with the variables from f1 and f2
+	vector<Variable<T>*> new_variables = vector<Variable<T>*>(f2);
+
+	//Get the list of common variables and add uncommon variables to new variable list
+	for (vector<Variable<T>*>::iterator it1 = f1.get_variables().begin(); it1 != f1.get_variables().end(); ++it1) {
+		for (vector<Variable<T>*>::iterator it2 = f2.get_variables().begin(); it2 != f2.get_variables().end(); ++it2) {
+			if (it1->get_name() == it2->get_name()) {
+				common_variables.push_back(*it1);
+			}
+			else {
+				new_variables.push_back(*it);
+			}
+		}-
+	}
+
+	//Create the factor with the new variable list
+	Factor<T>* new_factor = new Factor<T>(new_variables);
+	
+	//Get all the partial instantiations of new_variables with the common variables left uninstantiated
+	PartialInstantiations<T> new_instantiations = get_instantiation(new_variables, common_variables);
+
+	//Get all instantiations of the common_variables
+	PartialInstantiations<T> common_instantiations = get_instantiation(common_variables);
+
+	for (vector<vector<T>>::iterator it = new_instantiations.instantiations.begin(); it != new_instantiations.instantiations.end(); ++it) {
+		for (vector<vector<T>>::iterator cit = common_instantiations.instantiations.begin(); cit != common_instantiations.instantiations.end(); ++cit) {
+			vector<T> partial_instantiation = *it;
+			vector<T> common_instantiation = *cit;
+
+			for (vector<T>::iterator iit = common_instantiation.begin(); iit != common_instantiation.end(); ++iit) {
+				//Fill the partial instantiation with the common instantiation
+				for (unsigned int i = 0; i < new_instantiations.index_of_uninstantiated_variables.size(); ++i) {
+					int index = new_instantiations.index_of_uninstantiated_variables.at(i);
+
+					partial_instantiation.at(index) = *iit;
+				}
+
+				//Get the product
+				unsigned int index = f2.get_variables().size(); //The index that uncommon f1 variables begin
+
+				for (unsigned int i = 0; i < f1.get_variables().size(); ++i) {
+					
+				}
+
+				new_factor->set_value(partial_instantiation, );
+			}
+		}
+	}
 }
