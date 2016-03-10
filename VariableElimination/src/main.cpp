@@ -7,55 +7,41 @@
 using namespace std;
 
 int main () {
-	vector<Variable<bool>*> variables;
+	vector<Variable<bool>*> f1_variables, f2_variables;
 	vector<bool> domain = { true, false };
 
-	variables.push_back(new Variable<bool>("A", domain));
-	variables.push_back(new Variable<bool>("B", domain));
-	variables.push_back(new Variable<bool>("C", domain));
-	variables.push_back(new Variable<bool>("D", domain));
+	f1_variables.push_back(new Variable<bool>("A", domain));
+	f1_variables.push_back(new Variable<bool>("B", domain));
 
-	Factor<bool> f = Factor<bool>(variables);
-	f.set_value(vector<bool>({ true, true, true, true }), 1);
-	f.set_value(vector<bool>({ true, true, false, true }), 2);
-	f.set_value(vector<bool>({ true, false, true, true }), 3);
-	f.set_value(vector<bool>({ false, true, true, true }), 4);
-	f.set_value(vector<bool>({ true, false, false, true }), 5);
-	f.set_value(vector<bool>({ false, false, true, true }), 6);
-	f.set_value(vector<bool>({ false, true, false, true }), 7);
-	f.set_value(vector<bool>({ false, false, false, true }), 8);
+	f2_variables.push_back(new Variable<bool>("B", domain));
+	f2_variables.push_back(new Variable<bool>("C", domain));
 
-	f.set_value(vector<bool>({ true, true, true, false }), 9);
-	f.set_value(vector<bool>({ true, true, false, false }), 10);
-	f.set_value(vector<bool>({ true, false, true, false }), 11);
-	f.set_value(vector<bool>({ false, true, true, false }), 12);
-	f.set_value(vector<bool>({ true, false, false, false }), 13);
-	f.set_value(vector<bool>({ false, false, true, false }), 14);
-	f.set_value(vector<bool>({ false, true, false, false }), 15);
-	f.set_value(vector<bool>({ false, false, false, false }), 16);
+	Factor<bool> f1 = Factor<bool>(f1_variables);
+	f1.set_value(vector<bool>({ true, true }), 0.9);
+	f1.set_value(vector<bool>({ true, false }), 0.1);
+	f1.set_value(vector<bool>({ false, true }), 0.4);
+	f1.set_value(vector<bool>({ false, false }), 0.6);
 
-	//f = Factor<bool>::restrict(f, variables.at(0), false);
+	Factor<bool> f2 = Factor<bool>(f2_variables);
+	f2.set_value(vector<bool>({ true, true }), 0.7);
+	f2.set_value(vector<bool>({ true, false }), 0.3);
+	f2.set_value(vector<bool>({ false, true }), 0.8);
+	f2.set_value(vector<bool>({ false, false }), 0.2);
 
-	Factor<bool>* f2 = Factor<bool>::sumout(f, variables.at(3));
-
-	//Print partial instantiation of variable
-	//PartialInstantiations<bool> partial_instantiations = get_instantiation(variables, vector<Variable<bool>*>({variables.at(1), variables.at(2)}));
-
-	//for (unsigned int i = 0; i < partial_instantiations.instantiations.size(); ++i) {
-	//	for (unsigned int j = 0; j < partial_instantiations.instantiations.at(i).size(); ++j) {
-	//		cout << partial_instantiations.instantiations.at(i).at(j) << " ";
-	//	}
-
-	//	cout << endl;
-	//}
+	Factor<bool>* f3 = Factor<bool>::multiply(f1, f2);
 	
 	//Print the factor
-	f2->print_table();
-	delete f2;
+	f3->print_table();
 
-	for (unsigned int i = 0; i < variables.size(); ++i) {
-		delete variables.at(i);
+	for (unsigned int i = 0; i < f1_variables.size(); ++i) {
+		delete f1_variables.at(i);
 	}
+
+	for (unsigned int i = 0; i < f2_variables.size(); ++i) {
+		delete f2_variables.at(i);
+	}
+
+	delete f3;
 
 	return 0;
 }

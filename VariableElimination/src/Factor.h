@@ -45,7 +45,7 @@ string Variable<T>::get_name() {
 template <class T>
 class Factor {
 public:
-	static Factor<T>* multiply(Factor<T> f1, Factor<T> f2);
+	static Factor<T>* multiply(Factor<T> &f1, Factor<T> &f2);
 	static Factor<T>& restrict(Factor<T> &f, Variable<T>* variable, T value);
 	static Factor<T>* sumout(Factor<T> &f, Variable<T>* variable);
 
@@ -53,28 +53,28 @@ public:
 	~Factor();
 
 	vector<Variable<T>*> &get_variables();
-	Node<T, int>* get_nary();
-	Factor<T>* set_nary(Node<T, int>* nary);
+	Node<T, double>* get_nary();
+	Factor<T>* set_nary(Node<T, double>* nary);
 
 	//Given some instantiation of the random variables (in the order that they were passed), get/set it's value
-	int get_value(vector<T> instantiation);
-	Factor<T>* set_value(vector<T> instantiation, int value);
+	double get_value(vector<T> instantiation);
+	Factor<T>* set_value(vector<T> instantiation, double value);
 
 	//Debugging
 	void print_table();
 private:
 	vector<Variable<T>*> variables;
-	Node<T, int>* nary;	//We represent the multidimensional array as a tree where the leaf nodes contain the value and the path is the instantiation of the random variables
+	Node<T, double>* nary;	//We represent the multidimensional array as a tree where the leaf nodes contain the value and the path is the instantiation of the random variables
 };
 
 template <typename K>
-void construct_nary(Node<K, int>* current_node, typename vector<Variable<K>*>::iterator it, typename vector<Variable<K>*>::iterator end) {
+void construct_nary(Node<K, double>* current_node, typename vector<Variable<K>*>::iterator it, typename vector<Variable<K>*>::iterator end) {
 	//Construct the nary
 	if (it != end) {
 		vector<K> current_domain = (*it)->get_domain();
 		advance(it, 1);
 		for (unsigned int i = 0; i < current_domain.size(); ++i) {
-			Node<K, int>* new_node = new Node<K, int>(-1, current_node);
+			Node<K, double>* new_node = new Node<K, double>(-1, current_node);
 			current_node->add_neighbour(current_domain.at(i), new_node);
 			construct_nary(new_node, it, end);
 		}
@@ -83,14 +83,14 @@ void construct_nary(Node<K, int>* current_node, typename vector<Variable<K>*>::i
 
 template <typename T>
 Factor<T>::Factor(vector<Variable<T>*> variables) : variables(variables) {
-	this->nary = new Node<T, int>(-1, NULL);
+	this->nary = new Node<T, double>(-1, NULL);
 	
 	construct_nary(this->nary, variables.begin(), variables.end());
 }
 
 template <typename T>
-void delete_tree(Node<T, int>* tree) {
-	for (map<T, Node<T, int>*>::iterator it = tree->get_neighbours().begin(); it != tree->get_neighbours().end(); ++it) {
+void delete_tree(Node<T, double>* tree) {
+	for (map<T, Node<T, double>*>::iterator it = tree->get_neighbours().begin(); it != tree->get_neighbours().end(); ++it) {
 		delete_tree(it->second);
 	}
 	delete tree;
@@ -108,22 +108,22 @@ vector<Variable<T>*> &Factor<T>::get_variables()
 }
 
 template<class T>
-inline Node<T, int>* Factor<T>::get_nary()
+inline Node<T, double>* Factor<T>::get_nary()
 {
 	return this->nary;
 }
 
 template<class T>
-Factor<T>* Factor<T>::set_nary(Node<T, int>* nary)
+Factor<T>* Factor<T>::set_nary(Node<T, double>* nary)
 {
 	this->nary = nary;
 	return this;
 }
 
 template <typename T>
-int Factor<T>::get_value(vector<T> instantiation) {
+double Factor<T>::get_value(vector<T> instantiation) {
 	//Find the appropriate leaf node
-	Node<T, int>* current_node = this->nary;
+	Node<T, double>* current_node = this->nary;
 	for (unsigned int i = 0; i < instantiation.size(); i++) {
 		current_node = current_node->get_neighbour(instantiation.at(i));
 	}
@@ -132,9 +132,9 @@ int Factor<T>::get_value(vector<T> instantiation) {
 }
 
 template <typename T>
-Factor<T>* Factor<T>::set_value(vector<T> instantiation, int value) {
+Factor<T>* Factor<T>::set_value(vector<T> instantiation, double value) {
 	//Find the appropriate leaf node
-	Node<T, int>* current_node = this->nary;
+	Node<T, double>* current_node = this->nary;
 	for (unsigned int i = 0; i < instantiation.size(); i++) {
 		current_node = current_node->get_neighbour(instantiation.at(i));
 	}
@@ -144,7 +144,7 @@ Factor<T>* Factor<T>::set_value(vector<T> instantiation, int value) {
 }
 
 template <class T>
-void rprint_table(Node<T, int>* current_node, typename vector<Variable<T>*>::iterator it, typename vector<Variable<T>*>::iterator end, vector<pair<string, T> > path) {
+void rprint_table(Node<T, double>* current_node, typename vector<Variable<T>*>::iterator it, typename vector<Variable<T>*>::iterator end, vector<pair<string, T> > path) {
 	if (current_node->is_leaf()) {
 		for (unsigned int i = 0; i < path.size(); ++i) {
 			cout << path.at(i).first << "=" << path.at(i).second << " ";
@@ -152,7 +152,7 @@ void rprint_table(Node<T, int>* current_node, typename vector<Variable<T>*>::ite
 		cout << ": " << current_node->get_data() << endl;
 	}
 	else {
-		for (map<T, Node<T, int>*>::iterator cit = current_node->get_neighbours().begin(); cit != current_node->get_neighbours().end(); ++cit) {
+		for (map<T, Node<T, double>*>::iterator cit = current_node->get_neighbours().begin(); cit != current_node->get_neighbours().end(); ++cit) {
 			vector<pair<string, T> > new_path = path;
 			new_path.push_back(pair<string, T>((*it)->get_name(), cit->first));
 			rprint_table(cit->second, next(it, 1), end, new_path);
@@ -177,16 +177,16 @@ vector<Variable<T>*> remove_variable(vector<Variable<T>*> variables, Variable<T>
 }
 
 template <typename K>
-void rrestrict(Node<K, int>* current_node, typename vector<Variable<K>*>::iterator it, typename vector<Variable<K>*>::iterator end, Variable<K>* restricted_variable, K restricted_value) {
+void rrestrict(Node<K, double>* current_node, typename vector<Variable<K>*>::iterator it, typename vector<Variable<K>*>::iterator end, Variable<K>* restricted_variable, K restricted_value) {
 	if (it == end) {
 		//Variable not found
 	}
 	else if (advance(it, 1), it != end && (*it)->get_name() == restricted_variable->get_name()) {	//Forward lookahead 1 level is necessary so that children don't update parent multiple times
 		//Variable found, restrict
-		for (map<K, Node<K, int>*>::iterator cit = current_node->get_neighbours().begin(); cit != current_node->get_neighbours().end(); ++cit) {
+		for (map<K, Node<K, double>*>::iterator cit = current_node->get_neighbours().begin(); cit != current_node->get_neighbours().end(); ++cit) {
 			//Retrieve child and grandchild
-			Node<K, int>* old_child = cit->second;
-			Node<K, int>* new_child = old_child->get_neighbour(restricted_value);
+			Node<K, double>* old_child = cit->second;
+			Node<K, double>* new_child = old_child->get_neighbour(restricted_value);
 
 			//Update child (of current node)
 			current_node->set_neighbour(cit->first, new_child);
@@ -201,7 +201,7 @@ void rrestrict(Node<K, int>* current_node, typename vector<Variable<K>*>::iterat
 	}
 	else {
 		//Continue deeper into tree
-		for (map<K, Node<K, int>*>::iterator cit = current_node->get_neighbours().begin(); cit != current_node->get_neighbours().end(); ++cit) {
+		for (map<K, Node<K, double>*>::iterator cit = current_node->get_neighbours().begin(); cit != current_node->get_neighbours().end(); ++cit) {
 			rrestrict(cit->second, it, end, restricted_variable, restricted_value);
 		}
 	}
@@ -213,8 +213,8 @@ Factor<T>& Factor<T>::restrict(Factor<T> &f, Variable<T>* variable, T value)
 {
 	if (!f.get_variables().empty() && f.get_variables().at(0)->get_name() == variable->get_name()) {
 		//Handle case where root node is restricted variable and update nary accordingly
-		Node<T, int>* old_nary = f.get_nary();
-		Node<T, int>* new_nary = old_nary->get_neighbour(value);
+		Node<T, double>* old_nary = f.get_nary();
+		Node<T, double>* new_nary = old_nary->get_neighbour(value);
 
 		f.set_nary(new_nary);
 		old_nary->remove_neighbour(value);
@@ -239,15 +239,16 @@ struct PartialInstantiations {
 	vector<int> index_of_uninstantiated_variables;
 };
 
+//Returns the index of the variable in variables or -1 if not found
 template <class T>
-bool is_variable_in_variables(Variable<T>* variable, vector<Variable<T>*> variables) {
+int variable_in_variables(Variable<T>* variable, vector<Variable<T>*> variables) {
 	for (unsigned int i = 0; i < variables.size(); ++i) {
 		if (variables.at(i)->get_name() == variable->get_name()) {
-			return true;
+			return i;
 		}
 	}
 
-	return false;
+	return -1;
 }
 
 template <typename T>
@@ -262,7 +263,7 @@ PartialInstantiations<T> get_instantiation(vector<Variable<T>*> variables, vecto
 
 	if (!variables.empty()) {
 		//Initialize partial_instantiations
-		if (is_variable_in_variables(variables.at(0), uninstantiate)) {
+		if (variable_in_variables(variables.at(0), uninstantiate) != -1) {
 			partial_instantiations.instantiations.push_back(vector<T>());
 			partial_instantiations.instantiations.at(0).resize(1);
 
@@ -287,7 +288,7 @@ PartialInstantiations<T> get_instantiation(vector<Variable<T>*> variables, vecto
 			//Clear the previous variable's partial_instantiations so we may add the new instantiations
 			partial_instantiations.instantiations.clear();
 
-			if (is_variable_in_variables(variable, uninstantiate)) {
+			if (variable_in_variables(variable, uninstantiate) != -1) {
 				//Add to previous instantiations a placeholder value
 				vector<vector<T>> new_instantiations = vector<vector<T>>(old_instantiations);
 
@@ -346,7 +347,7 @@ Factor<T>* Factor<T>::sumout(Factor<T>& f, Variable<T>* variable)
 		vector<T> instantiation = vector<T>(*it);
 		instantiation.erase(next(instantiation.begin(), partial_instantiations.index_of_uninstantiated_variables.at(0)));
 
-		int sum = 0;
+		double sum = 0;
 
 		for (vector<T>::iterator dit = variable->get_domain().begin(); dit != variable->get_domain().end(); ++dit) {
 			vector<T> filled_instantiation = vector<T>(*it);
@@ -361,56 +362,47 @@ Factor<T>* Factor<T>::sumout(Factor<T>& f, Variable<T>* variable)
 }
 
 template<class T>
-Factor<T>* Factor<T>::multiply(Factor<T> f1, Factor<T> f2)
+Factor<T>* Factor<T>::multiply(Factor<T> &f1, Factor<T> &f2)
 {
-	vector<Variable<T>*> common_variables;
-
 	//Create variable list with the variables from f1 and f2
-	vector<Variable<T>*> new_variables = vector<Variable<T>*>(f2);
+	vector<Variable<T>*> new_variables = vector<Variable<T>*>(f2.get_variables());
 
 	//Get the list of common variables and add uncommon variables to new variable list
 	for (vector<Variable<T>*>::iterator it1 = f1.get_variables().begin(); it1 != f1.get_variables().end(); ++it1) {
-		for (vector<Variable<T>*>::iterator it2 = f2.get_variables().begin(); it2 != f2.get_variables().end(); ++it2) {
-			if (it1->get_name() == it2->get_name()) {
-				common_variables.push_back(*it1);
-			}
-			else {
-				new_variables.push_back(*it);
-			}
-		}-
+		if (variable_in_variables(*it1, f2.get_variables()) == -1) {
+			new_variables.push_back(*it1);
+		}
 	}
 
 	//Create the factor with the new variable list
 	Factor<T>* new_factor = new Factor<T>(new_variables);
 	
-	//Get all the partial instantiations of new_variables with the common variables left uninstantiated
-	PartialInstantiations<T> new_instantiations = get_instantiation(new_variables, common_variables);
-
-	//Get all instantiations of the common_variables
-	PartialInstantiations<T> common_instantiations = get_instantiation(common_variables);
+	//Get all the instantiations of new_variables
+	PartialInstantiations<T> new_instantiations = get_instantiation(new_variables);
 
 	for (vector<vector<T>>::iterator it = new_instantiations.instantiations.begin(); it != new_instantiations.instantiations.end(); ++it) {
-		for (vector<vector<T>>::iterator cit = common_instantiations.instantiations.begin(); cit != common_instantiations.instantiations.end(); ++cit) {
-			vector<T> partial_instantiation = *it;
-			vector<T> common_instantiation = *cit;
+		vector<T> partial_instantiation = *it;
 
-			for (vector<T>::iterator iit = common_instantiation.begin(); iit != common_instantiation.end(); ++iit) {
-				//Fill the partial instantiation with the common instantiation
-				for (unsigned int i = 0; i < new_instantiations.index_of_uninstantiated_variables.size(); ++i) {
-					int index = new_instantiations.index_of_uninstantiated_variables.at(i);
+		//Get the product
+		double factor1, factor2;
+		vector<T> factor_instantiation = vector<T>(f1.get_variables().size());
 
-					partial_instantiation.at(index) = *iit;
-				}
-
-				//Get the product
-				unsigned int index = f2.get_variables().size(); //The index that uncommon f1 variables begin
-
-				for (unsigned int i = 0; i < f1.get_variables().size(); ++i) {
-					
-				}
-
-				new_factor->set_value(partial_instantiation, );
+		for (unsigned int i = 0; i < new_variables.size(); ++i) {
+			int index = variable_in_variables(new_variables.at(i), f1.get_variables());
+			if (index != -1) {
+				factor_instantiation.at(index) = partial_instantiation.at(i);
 			}
 		}
+
+		factor1 = f1.get_value(factor_instantiation);
+
+		factor_instantiation.clear();
+		factor_instantiation.insert(factor_instantiation.begin(), partial_instantiation.begin(), next(partial_instantiation.begin(), f2.get_variables().size()));
+
+		factor2 = f2.get_value(factor_instantiation);
+
+		new_factor->set_value(partial_instantiation, factor1 * factor2);
 	}
+
+	return new_factor;
 }
