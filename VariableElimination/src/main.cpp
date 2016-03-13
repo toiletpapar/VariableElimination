@@ -72,24 +72,62 @@ int main () {
 	FB_cond.set_value(vector<bool>({ false, true }), 0.4);
 	FB_cond.set_value(vector<bool>({ false, false }), 0.9);
 
-	//Setup variable elimination variables
+	//=========
+	//Setup variable elimination variables (Setup for P(FH))
+	//vector<Factor<bool>*> factor_list = vector<Factor<bool>*>({ &FM_cond, &NA_cond, &NDG_cond, &FS_cond, &FH_cond });
+
+	//Variable<bool>* query_variable = FH;
+
+	//vector<Variable<bool>*> elimination_ordering = vector<Variable<bool>*>({ NA, FM, NDG, FS });
+
+	//vector<Variable<bool>*> variables_with_evidence = vector<Variable<bool>*>();
+
+	//vector<bool> evidence_list = vector<bool>();
+
+	//==========
+	//Setup variable elimination variables (Setup for P(FS|FM, FH))
+	//vector<Factor<bool>*> factor_list = vector<Factor<bool>*>({ &FM_cond, &NA_cond, &NDG_cond, &FS_cond, &FH_cond });
+
+	//Variable<bool>* query_variable = FS;
+
+	//vector<Variable<bool>*> elimination_ordering = vector<Variable<bool>*>({ NA, NDG });
+
+	//vector<Variable<bool>*> variables_with_evidence = vector<Variable<bool>*>({ FM, FH });
+
+	//vector<bool> evidence_list = vector<bool>({ true, true });
+
+	//==========
+	//Setup variable elimination variables (Setup for P(FS|FM, FH, FB))
+	//vector<Factor<bool>*> factor_list = vector<Factor<bool>*>({ &FM_cond, &NA_cond, &NDG_cond, &FS_cond, &FB_cond, &FH_cond });
+
+	//Variable<bool>* query_variable = FS;
+
+	//vector<Variable<bool>*> elimination_ordering = vector<Variable<bool>*>({ NA, NDG });
+
+	//vector<Variable<bool>*> variables_with_evidence = vector<Variable<bool>*>({ FB, FM , FH });
+
+	//vector<bool> evidence_list = vector<bool>({ true, true, true });
+
+	//==========
+	//Setup variable elimination variables (Setup for P(FS|FM, FH, FB, NA))
 	vector<Factor<bool>*> factor_list = vector<Factor<bool>*>({ &FM_cond, &NA_cond, &NDG_cond, &FS_cond, &FB_cond, &FH_cond });
 
 	Variable<bool>* query_variable = FS;
 
-	vector<Variable<bool>*> elimination_ordering = vector<Variable<bool>*>({ FB, NA, NDG });
+	vector<Variable<bool>*> elimination_ordering = vector<Variable<bool>*>({ NDG });
 
-	vector<Variable<bool>*> variables_with_evidence = vector<Variable<bool>*>({FH, FM});
+	vector<Variable<bool>*> variables_with_evidence = vector<Variable<bool>*>({ FB, FM , FH, NA });
 
-	vector<bool> evidence_list = vector<bool>({ true, true });
+	vector<bool> evidence_list = vector<bool>({ true, true, true, true });
 
+	//do VE
 	Factor<bool>* result = Factor<bool>::inference(factor_list, query_variable, elimination_ordering, variables_with_evidence, evidence_list);
 	
 	//Print the factor
 	cout << "Result:\n";
 	result->print_table();
 
-	//delete result;
+	delete result;
 
 	for (unsigned int i = 0; i < all_variables.size(); ++i) {
 		delete all_variables.at(i);

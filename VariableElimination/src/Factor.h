@@ -544,5 +544,10 @@ Factor<T>* Factor<T>::inference(vector<Factor<T>*> factor_list, Variable<T>* que
 	//Normalize the resulting factor
 	Factor<T>::normalize(*product);
 
+	//Clean up around the house
+	for (unsigned int i = 0; i < factors_to_delete.size(); ++i) {
+		delete factors_to_delete.at(i);
+	}
+
 	return product;
 }
