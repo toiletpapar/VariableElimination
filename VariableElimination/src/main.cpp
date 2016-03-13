@@ -28,10 +28,10 @@ int main () {
 	f2.set_value(vector<bool>({ false, true }), 0.8);
 	f2.set_value(vector<bool>({ false, false }), 0.2);
 
-	Factor<bool>* f3 = Factor<bool>::multiply(f1, f2);
+	Factor<bool>::normalize(f1);
 	
 	//Print the factor
-	f3->print_table();
+	f1.print_table();
 
 	for (unsigned int i = 0; i < f1_variables.size(); ++i) {
 		delete f1_variables.at(i);
@@ -41,7 +41,7 @@ int main () {
 		delete f2_variables.at(i);
 	}
 
-	delete f3;
+	//delete f3;
 
 	return 0;
 }

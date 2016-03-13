@@ -45,6 +45,7 @@ string Variable<T>::get_name() {
 template <class T>
 class Factor {
 public:
+	static Factor<T>& normalize(Factor<T> &f);
 	static Factor<T>* multiply(Factor<T> &f1, Factor<T> &f2);
 	static Factor<T>& restrict(Factor<T> &f, Variable<T>* variable, T value);
 	static Factor<T>* sumout(Factor<T> &f, Variable<T>* variable);
@@ -405,4 +406,24 @@ Factor<T>* Factor<T>::multiply(Factor<T> &f1, Factor<T> &f2)
 	}
 
 	return new_factor;
+}
+
+//Note: modifies factor given
+template<class T>
+Factor<T>& Factor<T>::normalize(Factor<T>& f)
+{
+	PartialInstantiations<T> partial_instantiations = get_instantiation(f.get_variables());
+
+	double sum = 0;
+
+	for (vector<vector<T>>::iterator instantiation = partial_instantiations.instantiations.begin(); instantiation != partial_instantiations.instantiations.end(); ++instantiation) {
+		sum += f.get_value(*instantiation);
+	}
+
+	for (vector<vector<T>>::iterator instantiation = partial_instantiations.instantiations.begin(); instantiation != partial_instantiations.instantiations.end(); ++instantiation) {
+		double normalized_value = f.get_value(*instantiation) / sum;
+		f.set_value(*instantiation, normalized_value);
+	}
+
+	return f;
 }
