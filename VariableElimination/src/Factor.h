@@ -50,6 +50,8 @@ public:
 	static Factor<T>& restrict(Factor<T> &f, Variable<T>* variable, T value);
 	static Factor<T>* sumout(Factor<T> &f, Variable<T>* variable);
 
+	static Factor<T>* inference(vector<Factor<T>*> factor_list, Variable<T>* query_variable, vector<Variable<T>*> ordered_list_of_hidden_variables, vector<Variable<T>*> variables_with_evidence, vector<T> evidence_list);
+
 	Factor(vector<Variable<T>*> variables);
 	~Factor();
 
@@ -426,4 +428,102 @@ Factor<T>& Factor<T>::normalize(Factor<T>& f)
 	}
 
 	return f;
+}
+
+template <typename T>
+Factor<T>* Factor<T>::inference(vector<Factor<T>*> factor_list, Variable<T>* query_variable, vector<Variable<T>*> ordered_list_of_hidden_variables, vector<Variable<T>*> variables_with_evidence, vector<T> evidence_list) {
+	vector<Factor<T>*> factors_to_delete;
+	
+	//Restrict factors in factor_list according to the evidence in evidence_list
+	for (vector<Factor<T>*>::iterator factor = factor_list.begin(); factor != factor_list.end(); ++factor) {
+		vector<Variable<T>*> factor_variables = (*factor)->get_variables();
+
+		for (unsigned int i = 0; i < variables_with_evidence.size(); ++i) {
+			Variable<T>* variable = variables_with_evidence.at(i);
+
+			if (variable_in_variables(variable, factor_variables) != -1) {
+				Factor<T>::restrict(**factor, variable, evidence_list.at(i));
+			}
+		}
+	}
+
+	//Sum out the hidden variables from the product of the factors in factor_list
+	for (vector<Variable<T>*>::iterator variable = ordered_list_of_hidden_variables.begin(); variable != ordered_list_of_hidden_variables.end(); ++variable) {
+		//for each variable to eliminate
+		bool first_factor = true;
+		bool second_factor = true;
+		Factor<T>* product = factor_list[0];	//Initialize product to some random factor
+		vector<Factor<T>*> retained_factors;
+		
+		for (unsigned int i = 0; i < factor_list.size(); ++i) {
+			Factor<T>* factor = factor_list.at(i);
+			//test if variable is in the factor
+			if (variable_in_variables(*variable, factor->get_variables())) {
+				//if it is then update the product of the factors
+				if (first_factor) {
+					//Initialize product to the proper factor
+					first_factor = false;
+					product = factor;
+				}
+				else if (second_factor) {
+					second_factor = false;
+					product = Factor<T>::multiply(*product, *factor);
+				}
+				else {
+					Factor<T>* old_product = product;
+					product = Factor<T>::multiply(*product, *factor);
+
+					delete old_product;
+				}
+			}
+			else {
+				retained_factors.push_back(factor);
+			}
+		}
+
+		//finally, sumout the variable to eliminate from the product
+		Factor<T>* new_factor = Factor<T>::sumout(*product, *variable);
+		if (!second_factor) {
+			delete product;
+		}
+
+		//add the new factor into the factor list and remove the eliminated factors
+		retained_factors.push_back(new_factor);
+		factor_list = retained_factors;
+
+		//don't lose the references to new factors
+		factors_to_delete.push_back(new_factor);
+	}
+	
+	//What's left in the factor_list is the query_variable if all other variables were present in the elimination order
+	//Get the product for the query_variable
+	Factor<T>* product = factor_list[0];
+	bool first_factor = true;
+	bool second_factor = true;
+	for (unsigned int i = 0; i < factor_list.size(); ++i) {
+		Factor<T>* factor = factor_list.at(i);
+		//test if variable is in the factor
+		if (variable_in_variables(query_variable, factor->get_variables())) {
+			//if it is then update the product of the factors
+			if (first_factor) {
+				first_factor = false;
+				product = factor;
+			}
+			else if (second_factor) {
+				second_factor = false;
+				product = Factor<T>::multiply(*product, *factor);
+			}
+			else {
+				Factor<T>* old_product = product;
+				product = Factor<T>::multiply(*product, *factor);
+
+				delete old_product;
+			}
+		}
+	}
+
+	//Normalize the resulting factor
+	Factor<T>::normalize(*product);
+
+	return product;
 }
