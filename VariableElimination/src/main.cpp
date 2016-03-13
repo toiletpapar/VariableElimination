@@ -77,22 +77,23 @@ int main () {
 
 	Variable<bool>* query_variable = FS;
 
-	vector<Variable<bool>*> elimination_ordering = vector<Variable<bool>*>({ FB, NA, FM, NDG, FH });
+	vector<Variable<bool>*> elimination_ordering = vector<Variable<bool>*>({ FB, NA, NDG });
 
-	vector<Variable<bool>*> variables_with_evidence = vector<Variable<bool>*>();
+	vector<Variable<bool>*> variables_with_evidence = vector<Variable<bool>*>({FH, FM});
 
-	vector<bool> evidence_list = vector<bool>();
+	vector<bool> evidence_list = vector<bool>({ true, true });
 
 	Factor<bool>* result = Factor<bool>::inference(factor_list, query_variable, elimination_ordering, variables_with_evidence, evidence_list);
 	
 	//Print the factor
+	cout << "Result:\n";
 	result->print_table();
+
+	//delete result;
 
 	for (unsigned int i = 0; i < all_variables.size(); ++i) {
 		delete all_variables.at(i);
 	}
-
-	delete result;
 
 	return 0;
 }

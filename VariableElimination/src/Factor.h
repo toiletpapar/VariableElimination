@@ -433,22 +433,37 @@ Factor<T>& Factor<T>::normalize(Factor<T>& f)
 template <typename T>
 Factor<T>* Factor<T>::inference(vector<Factor<T>*> factor_list, Variable<T>* query_variable, vector<Variable<T>*> ordered_list_of_hidden_variables, vector<Variable<T>*> variables_with_evidence, vector<T> evidence_list) {
 	vector<Factor<T>*> factors_to_delete;
+	vector<Factor<T>*> factors_to_keep;
 	
 	//Restrict factors in factor_list according to the evidence in evidence_list
 	for (vector<Factor<T>*>::iterator factor = factor_list.begin(); factor != factor_list.end(); ++factor) {
 		vector<Variable<T>*> factor_variables = (*factor)->get_variables();
+		bool restricted_variable = false;
+		bool found_variable_to_restrict = false;
 
 		for (unsigned int i = 0; i < variables_with_evidence.size(); ++i) {
 			Variable<T>* variable = variables_with_evidence.at(i);
 
 			if (variable_in_variables(variable, factor_variables) != -1) {
-				Factor<T>::restrict(**factor, variable, evidence_list.at(i));
+				//Don't bother restricting if the only variable in the factor is the variable to restrict
+				found_variable_to_restrict = true;
+				if (factor_variables.size() > 1) {
+					Factor<T>::restrict(**factor, variable, evidence_list.at(i));
+					restricted_variable = true;
+				}
 			}
+		}
+
+		if (restricted_variable || !found_variable_to_restrict) {
+			factors_to_keep.push_back(*factor);
 		}
 	}
 
+	factor_list = factors_to_keep;
+
 	//Sum out the hidden variables from the product of the factors in factor_list
 	for (vector<Variable<T>*>::iterator variable = ordered_list_of_hidden_variables.begin(); variable != ordered_list_of_hidden_variables.end(); ++variable) {
+		cout << "Eliminate: " << (*variable)->get_name() << endl;
 		//for each variable to eliminate
 		bool first_factor = true;
 		bool second_factor = true;
@@ -458,7 +473,7 @@ Factor<T>* Factor<T>::inference(vector<Factor<T>*> factor_list, Variable<T>* que
 		for (unsigned int i = 0; i < factor_list.size(); ++i) {
 			Factor<T>* factor = factor_list.at(i);
 			//test if variable is in the factor
-			if (variable_in_variables(*variable, factor->get_variables())) {
+			if (variable_in_variables(*variable, factor->get_variables()) != -1) {
 				//if it is then update the product of the factors
 				if (first_factor) {
 					//Initialize product to the proper factor
@@ -486,6 +501,10 @@ Factor<T>* Factor<T>::inference(vector<Factor<T>*> factor_list, Variable<T>* que
 		if (!second_factor) {
 			delete product;
 		}
+
+		cout << "Computed factor:\n";
+		new_factor->print_table();
+		cout << "==============" << endl;
 
 		//add the new factor into the factor list and remove the eliminated factors
 		retained_factors.push_back(new_factor);
