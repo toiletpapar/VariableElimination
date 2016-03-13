@@ -522,7 +522,7 @@ Factor<T>* Factor<T>::inference(vector<Factor<T>*> factor_list, Variable<T>* que
 	for (unsigned int i = 0; i < factor_list.size(); ++i) {
 		Factor<T>* factor = factor_list.at(i);
 		//test if variable is in the factor
-		if (variable_in_variables(query_variable, factor->get_variables())) {
+		if (variable_in_variables(query_variable, factor->get_variables()) != -1) {
 			//if it is then update the product of the factors
 			if (first_factor) {
 				first_factor = false;
